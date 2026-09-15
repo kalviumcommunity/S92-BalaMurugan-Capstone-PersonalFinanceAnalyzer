@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./config/db');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
@@ -9,7 +10,8 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware to let Express understand JSON request bodies
+// Middleware
+app.use(cors());
 app.use(express.json());
 
 // WRITE (Create a transaction)
@@ -57,6 +59,19 @@ app.put('/api/items/:id', async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
     res.status(200).json(updatedTransaction);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// DELETE (Remove a transaction)
+app.delete('/api/items/:id', async (req, res) => {
+  try {
+    const deletedTransaction = await Transaction.findByIdAndDelete(req.params.id);
+    if (!deletedTransaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    res.status(200).json({ message: 'Transaction deleted successfully', deletedTransaction });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
