@@ -1,9 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const connectDB = require('./config/db');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
+const protect = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -24,8 +26,8 @@ app.post('/api/items', async (req, res) => {
   }
 });
 
-// READ (Get all transactions)
-app.get('/api/items', async (req, res) => {
+// READ (Get all transactions) — PROTECTED: requires a valid JWT
+app.get('/api/items', protect, async (req, res) => {
   try {
     const transactions = await Transaction.find();
     res.status(200).json(transactions);
@@ -87,7 +89,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// LOGIN (Authenticate a user with email + password)
+// LOGIN (Authenticate a user and issue a JWT)
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -102,8 +104,15 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
     res.status(200).json({
       message: 'Login successful',
+      token,
       user: { id: user._id, name: user.name, email: user.email }
     });
   } catch (error) {
