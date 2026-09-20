@@ -7,15 +7,33 @@ function App() {
   const [transactions, setTransactions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ amount: '', category: '', type: '' });
+  const [token, setToken] = useState(null);
 
+  // On load, check if a token came back from Google login (in the URL) or was saved before
   useEffect(() => {
-    fetchTransactions();
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+
+    if (urlToken) {
+      setToken(urlToken);
+      window.history.replaceState({}, document.title, '/'); // clean the URL
+    }
   }, []);
 
+  useEffect(() => {
+    if (token) {
+      fetchTransactions();
+    }
+  }, [token]);
+
   const fetchTransactions = async () => {
-    const response = await fetch(API_URL);
-    const data = await response.json();
-    setTransactions(data);
+    const response = await fetch(API_URL, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      setTransactions(data);
+    }
   };
 
   const startEdit = (transaction) => {
@@ -53,6 +71,20 @@ function App() {
     fetchTransactions();
   };
 
+  if (!token) {
+    return (
+      <div style={{ maxWidth: '600px', margin: '100px auto', fontFamily: 'sans-serif', textAlign: 'center' }}>
+        <h1>SpendLens</h1>
+        <p>Sign in to view your transactions.</p>
+        <a href="http://localhost:5000/api/auth/google">
+          <button style={{ padding: '10px 20px', fontSize: '16px', cursor: 'pointer' }}>
+            Sign in with Google
+          </button>
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: '600px', margin: '40px auto', fontFamily: 'sans-serif' }}>
       <h1>SpendLens — Transactions</h1>
@@ -63,25 +95,9 @@ function App() {
         <div key={t._id} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '12px', marginBottom: '10px' }}>
           {editingId === t._id ? (
             <div>
-              <input
-                name="amount"
-                type="number"
-                value={editForm.amount}
-                onChange={handleEditChange}
-                placeholder="Amount"
-              />
-              <input
-                name="category"
-                value={editForm.category}
-                onChange={handleEditChange}
-                placeholder="Category"
-              />
-              <input
-                name="type"
-                value={editForm.type}
-                onChange={handleEditChange}
-                placeholder="Type (income/expense)"
-              />
+              <input name="amount" type="number" value={editForm.amount} onChange={handleEditChange} placeholder="Amount" />
+              <input name="category" value={editForm.category} onChange={handleEditChange} placeholder="Category" />
+              <input name="type" value={editForm.type} onChange={handleEditChange} placeholder="Type" />
               <button onClick={() => saveEdit(t._id)}>Save</button>
               <button onClick={cancelEdit}>Cancel</button>
             </div>
