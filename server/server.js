@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 const Transaction = require('./models/Transaction');
 const User = require('./models/User');
 const protect = require('./middleware/authMiddleware');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
@@ -15,6 +16,7 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/api/upload', uploadRoutes);
 
 // WRITE (Create a transaction)
 app.post('/api/items', async (req, res) => {
